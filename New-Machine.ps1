@@ -8,6 +8,10 @@ if ((Get-PackageSource -Name chocolatey -ErrorAction SilentlyContinue) -eq $null
     'Register the Chocolatey provider'
     Register-PackageSource -Name chocolatey -Provider Chocolatey -Trusted -Location 'http://chocolatey.org/api/v2/'
 }
+else
+{
+    Set-PackageSource -Name chocolatey -Trusted
+}
 
 'Installing Software (this might take a while)'
 Install-Package -Name 'git.install'
@@ -19,7 +23,7 @@ Install-Package -Name 'hexchat'
 Install-Package -Name 'slack'
 Install-Package -Name 'conemu'
 Install-Package -Name 'firefox'
-Install-Package -Name 'chromium' # Trying to stay away from Google
+Install-Package -Name 'google-chrome-x64'
 Install-Package -Name 'Keepass.install'
 Install-Package -Name '7zip.install'
 Install-Package -Name 'emet'
@@ -31,17 +35,24 @@ Install-Package -Name 'ccleaner'
 Install-Package -Name 'VLC'
 Install-Package -Name 'WinSCP.install'
 Install-Package -Name 'rdcman'
-Install-Package -Name 'irfanview'
+#Install-Package -Name 'irfanview'
 Install-Package -Name 'lastpass'
-Install-Package -Name 'lastpass-for-applications'
 Install-Package -Name 'skype'
 Install-Package -Name 'spotify'
 Install-Package -Name 'CrashPlan'
 Install-Package -Name 'secunia.psi'
-Install-Package -Name 'yubikey-personalization-tool'
 Install-Package -Name 'tunnelier'
-Install-Package -Name 'royalts'
+Install-Package -Name 'nodejs.install'
 Install-Package -Name 'virtualbox'
+#gpg4win
+#AAD PowerShell
+
+npm install -g keybase-installer
+#keybase-installer
+#keybase version
+
+Install-Module AzureRM
+Install-AzureRM
 
 'Configuring EMET and system protections'
 & 'C:\Program Files (x86)\EMET 5.2\EMET_Conf.exe' --system --force DEP=AlwaysON SEHOP=AlwaysON ASLR=ApplicationOptIN Pinning=Enabled
