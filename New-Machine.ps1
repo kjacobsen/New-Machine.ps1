@@ -103,14 +103,14 @@ $null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
 $null = Install-Package -Name 'Office Installer' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
 
 'Installing .Net 3.5'
-Enable-WindowsOptionalFeature –Online –FeatureName 'NetFx3' –All
+Enable-WindowsOptionalFeature -FeatureName NetFx3 -Online
 
 'Enable Developer Mode'
 $null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name 'AllowAllTrustedApps' -Value 1
 $null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name 'AllowDevelopmentWithoutDevLicense' -Value 1
 
 'Installing Bash on Windows'
-Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux'
+#Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux'
 
 'Enable CTL+ALT+DEL at logon'
 $null = New-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'DisableCAD' -PropertyType DWORD -Value 0 -Force
