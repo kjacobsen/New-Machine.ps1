@@ -100,7 +100,7 @@ Import-Module PowerShellGet -Force -MinimumVersion 1.1.1.0
 #$null = Install-Module -Name 'OfficeProvider' -Force
 $Null = import-packageprovider 'OfficeProvider'
 $null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
-$null = Install-Package -Name 'Office Installer' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
+$null = Install-Package -Name 'Office' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
 
 'Installing .Net 3.5'
 Enable-WindowsOptionalFeature -FeatureName NetFx3 -Online
