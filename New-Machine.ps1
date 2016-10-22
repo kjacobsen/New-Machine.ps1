@@ -97,7 +97,7 @@ Install-Module -Name 'ISESteroids' -Scope CurrentUser
 Import-Module PowerShellGet -Force -MinimumVersion 1.1.1.0
 
 'Installing Office Pro Plus'
-$null = Install-Module -Name 'OfficeProvider' -AllowClobber
+$null = Install-Module -Name 'OfficeProvider' -Force
 $null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
 $null = Install-Package -Name 'Office Installer' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
 
