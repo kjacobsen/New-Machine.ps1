@@ -38,7 +38,7 @@ $ChocolateySoftwareToInstall = @(
     'putty.install'
     'rdmfree'
     'slack'
-    'spotify'
+    #'spotify'
     'WinMerge'
     'wireshark'
     'conemu'
