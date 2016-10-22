@@ -59,8 +59,8 @@ $null = Set-PackageSource -Name PSGallery -Trusted
 
 'Installing modules for PS gallery'
 $ModulesToInstall = @(
-    #'Azure'
-    #'AzureRM'
+    'Azure'
+    'AzureRM'
     'Posh-Git'
     'cChoco'
     'cWSMan'
@@ -87,7 +87,7 @@ $ModulesToInstall = @(
 Foreach ($Module in $ModulesToInstall)
 {
     "Installing $Module"
-    #$null = Install-Module -Name $Module -Force
+    $null = Install-Module -Name $Module -Force
 }
 
 'Install PowerShell ISE Steroids into current user'
@@ -97,7 +97,7 @@ Install-Module -Name 'ISESteroids' -Scope CurrentUser
 Import-Module PowerShellGet -Force -MinimumVersion 1.1.1.0
 
 'Installing Office Pro Plus'
-#$null = Install-Module -Name 'OfficeProvider' -Force
+$null = Install-Module -Name 'OfficeProvider' -Force
 $Null = import-packageprovider 'OfficeProvider'
 $null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
 $null = Install-Package -Name 'Office' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
@@ -158,6 +158,9 @@ else
 }
 
 'Block Advertising in IE'
+
+$null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -ItemType Directory
+$null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety' -ItemType Directory
 $null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'FilteringMode' -PropertyType DWORD -Value 0 -Force
 
 if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}'))
