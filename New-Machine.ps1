@@ -79,6 +79,9 @@ $ModulesToInstall = @(
     'xStorage'
     'xRemoteDesktopAdmin'
     'xWebAdministration'
+    'PSReadline'
+    'PowerShellGet'
+    'PackageManagement'
 )
 
 Foreach ($Module in $ModulesToInstall)
@@ -91,7 +94,7 @@ Foreach ($Module in $ModulesToInstall)
 Install-Module -Name 'ISESteroids' -Scope CurrentUser
 
 'Installing Office Pro Plus'
-$null = Install-Module -Name 'OfficeProvider' -Force
+$null = Install-Module -Name 'OfficeProvider' -AllowClobber
 $null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
 $null = Install-Package -Name 'Office Installer' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
 
