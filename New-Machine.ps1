@@ -87,7 +87,7 @@ $ModulesToInstall = @(
 Foreach ($Module in $ModulesToInstall)
 {
     "Installing $Module"
-    $null = Install-Module -Name $Module -Force
+    #$null = Install-Module -Name $Module -Force
 }
 
 'Install PowerShell ISE Steroids into current user'
@@ -97,7 +97,8 @@ Install-Module -Name 'ISESteroids' -Scope CurrentUser
 Import-Module PowerShellGet -Force -MinimumVersion 1.1.1.0
 
 'Installing Office Pro Plus'
-$null = Install-Module -Name 'OfficeProvider' -Force
+#$null = Install-Module -Name 'OfficeProvider' -Force
+$Null = import-packageprovider 'OfficeProvider'
 $null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
 $null = Install-Package -Name 'Office Installer' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
 
