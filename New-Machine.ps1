@@ -116,7 +116,7 @@ $null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\
 $null = New-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'DisableCAD' -PropertyType DWORD -Value 0 -Force
 
 'Setting UAC to FULL'
-$null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'ConsentPromptBehaviorAdmin' -Value 3
+$null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'ConsentPromptBehaviorAdmin' -Value 2
 
 'Set explorer to open to "This PC"'
 $null = New-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'LaunchTo' -PropertyType DWORD -Value 1 -Force
@@ -158,16 +158,16 @@ else
 }
 
 'Block Advertising in IE'
-$null = New-ItemProperty -Path 'HKCU:\\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'FilteringMode' -PropertyType DWORD -Value 0 -Force
+$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'FilteringMode' -PropertyType DWORD -Value 0 -Force
 
-if (-not (Test-Path -Path 'HKCU:\\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}'))
+if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}'))
 {
-    $null = New-Item -Path 'HKCU:\\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}' -ItemType Directory
+    $null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}' -ItemType Directory
 }
-$null = New-ItemProperty -Path 'HKCU:\\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Enabled' -PropertyType DWORD -Value 1 -Force
-$null = New-ItemProperty -Path 'HKCU:\\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Name' -PropertyType SZ -Value 'EasyList' -Force
-$null = New-ItemProperty -Path 'HKCU:\\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Path' -PropertyType SZ -Value '%AppDataDir%\Local\Microsoft\Internet Explorer\Tracking Protection\{7C998372-3B89-46E6-9546-1945C711CD0C}.tpl' -Force
-$null = New-ItemProperty -Path 'HKCU:\\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Url' -PropertyType SZ -Value 'http://easylist-msie.adblockplus.org/easylist.tpl' -Force
+$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Enabled' -PropertyType DWORD -Value 1 -Force
+$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Name' -PropertyType SZ -Value 'EasyList' -Force
+$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Path' -PropertyType SZ -Value '%AppDataDir%\Local\Microsoft\Internet Explorer\Tracking Protection\{7C998372-3B89-46E6-9546-1945C711CD0C}.tpl' -Force
+$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Url' -PropertyType SZ -Value 'http://easylist-msie.adblockplus.org/easylist.tpl' -Force
 
 'Harden Adobe PDF configuration'
 $null = New-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Adobe\Acrobat Reader\DC\FeatureLockDown' -Name 'iProtectedView' -PropertyType DWORD -Value 1 -Force
