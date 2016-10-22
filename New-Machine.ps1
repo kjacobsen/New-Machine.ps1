@@ -59,8 +59,8 @@ $null = Set-PackageSource -Name PSGallery -Trusted
 
 'Installing modules for PS gallery'
 $ModulesToInstall = @(
-    'Azure'
-    'AzureRM'
+    #'Azure'
+    #'AzureRM'
     'Posh-Git'
     'cChoco'
     'cWSMan'
@@ -84,7 +84,7 @@ $ModulesToInstall = @(
 Foreach ($Module in $ModulesToInstall)
 {
     "Installing $Module"
-    $null = Install-Module -Name $Module
+    $null = Install-Module -Name $Module -Force
 }
 
 'Install PowerShell ISE Steroids into current user'
