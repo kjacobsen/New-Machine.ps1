@@ -93,6 +93,9 @@ Foreach ($Module in $ModulesToInstall)
 'Install PowerShell ISE Steroids into current user'
 Install-Module -Name 'ISESteroids' -Scope CurrentUser
 
+'Forcing up to new version of PowerShellGet'
+Import-Module PowerShellGet -Force -MinimumVersion 1.1.1.0
+
 'Installing Office Pro Plus'
 $null = Install-Module -Name 'OfficeProvider' -AllowClobber
 $null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
