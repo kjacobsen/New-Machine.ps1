@@ -188,8 +188,8 @@ $null = New-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Adobe\Acrobat Reader\DC\
 $MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=18275'
 $DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
 $DownloadLink = ($DownloadPage.Links | Where-Object -FilterScript {$_.outerHTML -match 'Click here' -and $_.href -match 'Junk Reporting Add-in for Office 2007' -and $_.href -match '32-bit'}).href[0]
-$Null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\installer.msi"
-start-process "$env:temp\installer.msi" -ArgumentList "/quiet /qn /norestart" -Wait
+$Null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\junkreporter-installer.msi"
+start-process "$env:temp\junkreporter-installer.msi" -ArgumentList "/quiet /qn /norestart" -Wait
 
 'Date and time formatting'
 $null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name sShortDate -Value yyyy-MM-dd
@@ -198,6 +198,12 @@ $null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name sShortT
 'Update PowerShell Help'
 Update-Help -ErrorAction SilentlyContinue
 
+'Install RSAT for Windows 10/Server 2016'
+$MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=45520'
+$DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
+$DownloadLink = ($DownloadPage.Links | Where-Object -FilterScript {$_.outerHTML -match 'Click here' -and $_.href -match 'x64.msu'}).href[0]
+$Null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\rsat.msu"
+Start-Process "$env:temp\rsat.msu" -ArgumentList '/quiet /norestart' -Wait
 
 '==================='
 'Block Macros in Word, Excel and Publisher'
