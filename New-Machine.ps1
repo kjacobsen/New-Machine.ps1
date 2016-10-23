@@ -36,7 +36,7 @@ $ChocolateySoftwareToInstall = @(
     'nmap'
     'notepadplusplus.install'
     'putty.install'
-    'rdmfree'
+    'rdcman'
     'slack'
     #'spotify'
     'WinMerge'
