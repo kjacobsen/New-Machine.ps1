@@ -191,12 +191,16 @@ $DownloadLink = ($DownloadPage.Links | Where-Object -FilterScript {$_.outerHTML 
 $Null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\installer.msi"
 start-process "$env:temp\installer.msi" -ArgumentList "/quiet /qn /norestart" -Wait
 
-'==================='
-'Ensure Nuget is up to date'
-
-'Block Macros in Word, Excel and Publisher'
-
 'Date and time formatting'
+$null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name sShortDate -Value yyyy-MM-dd
+$null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name sShortTime -Value HH:mm
+
+'Update PowerShell Help'
+Update-Help -ErrorAction SilentlyContinue
+
+
+'==================='
+'Block Macros in Word, Excel and Publisher'
 
 'Installing ISE Steriods License (if found)'
 
