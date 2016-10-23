@@ -50,7 +50,7 @@ $ChocolateySoftwareToInstall = @(
 
 Foreach ($Software in $ChocolateySoftwareToInstall)
 {
-    "Installing $Software"
+    'Installing {0}' -f $Software
     $null = Install-Package -Name $Software -ProviderName chocolatey
 }
 
@@ -86,19 +86,19 @@ $ModulesToInstall = @(
 
 Foreach ($Module in $ModulesToInstall)
 {
-    "Installing $Module"
-    #$null = Install-Module -Name $Module -Force
+    'Installing {0}' -f $Module
+    $null = Install-Module -Name $Module -Force
 }
 
 'Install PowerShell ISE Steroids into current user'
 Install-Module -Name 'ISESteroids' -Scope CurrentUser
 
 'Forcing up to new version of PowerShellGet'
-Import-Module PowerShellGet -Force -MinimumVersion 1.1.1.0
+Import-Module -Name PowerShellGet -Force -MinimumVersion 1.1.1.0
 
 'Installing Office Pro Plus'
 $null = Install-Module -Name 'OfficeProvider' -Force
-$Null = import-packageprovider 'OfficeProvider'
+$null = Import-PackageProvider -Name 'OfficeProvider'
 $null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
 $null = Install-Package -Name 'Office' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
 
@@ -128,23 +128,23 @@ $null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\
 $null = Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\' -Name 'DontUsePowerShellOnWinX' -Value 0
 
 'Make Git ask who I am before I commit'
-git config --global user.useconfigonly true
+& "$env:ProgramW6432\git\bin\git.exe" config --global user.useconfigonly true
 
 'Setting git push behaviour to squelch the 2.0 upgrade message'
-if ((& git.exe config push.default) -eq $null)
+if ((& "$env:ProgramW6432\git\bin\git.exe" config push.default) -eq $null)
 {
     'Setting git push behaviour to squelch the 2.0 upgrade message'
-    git.exe config --global push.default simple
+    & "$env:ProgramW6432\git\bin\git.exe" config --global push.default simple
 }
 
 'Setting git aliases'
-git.exe config --global alias.st 'status'
-git.exe config --global alias.co 'checkout'
-git.exe config --global alias.df 'diff'
-git.exe config --global alias.lg "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
+& "$env:ProgramW6432\git\bin\git.exe" config --global alias.st 'status'
+& "$env:ProgramW6432\git\bin\git.exe" config --global alias.co 'checkout'
+& "$env:ProgramW6432\git\bin\git.exe" config --global alias.df 'diff'
+& "$env:ProgramW6432\git\bin\git.exe" config --global alias.lg "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
 
 'Enabling Office smileys'
-if (Test-Path HKCU:\Software\Microsoft\Office\16.0) 
+if (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0') 
 {
     if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback'))
     {
@@ -154,7 +154,7 @@ if (Test-Path HKCU:\Software\Microsoft\Office\16.0)
 }
 else
 {
-    Write-Warning "Couldn't find a compatible install of Office"
+    Write-Warning -Message "Couldn't find a compatible install of Office"
 }
 
 'Block Advertising in IE'
@@ -187,9 +187,9 @@ $null = New-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Adobe\Acrobat Reader\DC\
 'Install Microsoft Junk E-Mail Reporting Add-in'
 $MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=18275'
 $DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
-$DownloadLink = ($DownloadPage.Links | Where-Object -FilterScript {$_.outerHTML -match 'Click here' -and $_.href -match 'Junk Reporting Add-in for Office 2007' -and $_.href -match '32-bit'}).href[0]
-$Null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\junkreporter-installer.msi"
-start-process "$env:temp\junkreporter-installer.msi" -ArgumentList "/quiet /qn /norestart" -Wait
+$DownloadLink = ($DownloadPage.Links.Where{$_.outerHTML -match 'Click here' -and $_.href -match 'Junk Reporting Add-in for Office 2007' -and $_.href -match '32-bit'}).href[0]
+$null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\junkreporter-installer.msi"
+Start-Process -FilePath "$env:temp\junkreporter-installer.msi" -ArgumentList '/quiet /qn /norestart' -Wait
 
 'Date and time formatting'
 $null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name sShortDate -Value yyyy-MM-dd
@@ -201,58 +201,58 @@ Update-Help -ErrorAction SilentlyContinue
 'Install RSAT for Windows 10/Server 2016'
 $MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=45520'
 $DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
-$DownloadLink = ($DownloadPage.Links | Where-Object -FilterScript {$_.outerHTML -match 'Click here' -and $_.href -match 'x64.msu'}).href[0]
-$Null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\rsat.msu"
-Start-Process "$env:temp\rsat.msu" -ArgumentList '/quiet /norestart' -Wait
+$DownloadLink = ($DownloadPage.Links.Where{$_.outerHTML -match 'Click here' -and $_.href -match 'x64.msu'}).href[0]
+$null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\rsat.msu"
+Start-Process -FilePath "$env:temp\rsat.msu" -ArgumentList '/quiet /norestart' -Wait
 
-'==================='
-'Block Macros in Word, Excel and Publisher'
 
-'Installing ISE Steriods License (if found)'
 
-'GitHub SSH key configuration'
-
-'Copy hexchat configuration'
-
-'=============='
 <#
-if (-not (Test-Path -Path HKCU:\Software\Microsoft\OneDrive))
-{
-    throw "Couldn't find a compatible install of OneDrive"
-}
+    TODO: Features to add:
+    'Block Macros in Word, Excel and Publisher'
+    'Installing ISE Steriods License (if found)'
+    'GitHub SSH key configuration'
+    'Copy hexchat configuration'
+#>
 
-$OneDriveRoot = (Get-Item -Path HKCU:\Software\Microsoft\OneDrive).GetValue('UserFolder')
-if (-not (Test-Path $OneDriveRoot))
-{
-    throw "Couldn't find the OneDrive root"
-}
+<#
+        if (-not (Test-Path -Path HKCU:\Software\Microsoft\OneDrive))
+        {
+        throw "Couldn't find a compatible install of OneDrive"
+        }
 
-$SshKeyPath = Join-Path -Path $OneDriveRoot -ChildPath SSHProfiles\GitHub\GitPrivate.ppk
-if (-not (Test-Path $SshKeyPath))
-{
-    throw "Couldn't find SSH key at $SshKeyPath"
-}
+        $OneDriveRoot = (Get-Item -Path HKCU:\Software\Microsoft\OneDrive).GetValue('UserFolder')
+        if (-not (Test-Path $OneDriveRoot))
+        {
+        throw "Couldn't find the OneDrive root"
+        }
 
-$sshHomePath = Join-Path $ENV:UserProfile '.ssh'
-if (-not (Test-Path $sshHomePath))
-{
-     mkdir $sshHomePath 
-}
-Copy-Item $SshKeyPath $sshHomePath
+        $SshKeyPath = Join-Path -Path $OneDriveRoot -ChildPath SSHProfiles\GitHub\GitPrivate.ppk
+        if (-not (Test-Path $SshKeyPath))
+        {
+        throw "Couldn't find SSH key at $SshKeyPath"
+        }
 
-'Setting plink.exe as GIT_SSH'
-$PuttyDirectory = 'C:\Program Files (x86)\PuTTY'
-$PlinkPath = Join-Path -Path $PuttyDirectory -ChildPath plink.exe
-[Environment]::SetEnvironmentVariable('GIT_SSH', $PlinkPath, [EnvironmentVariableTarget]::User)
-$env:GIT_SSH = $PlinkPath
+        $sshHomePath = Join-Path $ENV:UserProfile '.ssh'
+        if (-not (Test-Path $sshHomePath))
+        {
+        mkdir $sshHomePath 
+        }
+        Copy-Item $SshKeyPath $sshHomePath
 
-"Storing GitHub's SSH key"
-$SshHostKeysPath = 'HKCU:\SOFTWARE\SimonTatham\PuTTY\SshHostKeys'
-if (-not (Test-Path $SshHostKeysPath)) 
-{
-     New-Item $SshHostKeysPath -ItemType Directory -Force 
-}
-Set-ItemProperty -Path $SshHostKeysPath -Name 'rsa2@22:github.com' -Value '0x23,0xab603b8511a67679bdb540db3bd2034b004ae936d06be3d760f08fcbaadb4eb4edc3b3c791c70aae9a74c95869e4774421c2abea92e554305f38b5fd414b3208e574c337e320936518462c7652c98b31e16e7da6523bd200742a6444d83fcd5e1732d03673c7b7811555487b55f0c4494f3829ece60f94255a95cb9af537d7fc8c7fe49ef318474ef2920992052265b0a06ea66d4a167fd9f3a48a1a4a307ec1eaaa5149a969a6ac5d56a5ef627e517d81fb644f5b745c4f478ecd082a9492f744aad326f76c8c4dc9100bc6ab79461d2657cb6f06dec92e6b64a6562ff0e32084ea06ce0ea9d35a583bfb00bad38c9d19703c549892e5aa78dc95e250514069'
+        'Setting plink.exe as GIT_SSH'
+        $PuttyDirectory = 'C:\Program Files (x86)\PuTTY'
+        $PlinkPath = Join-Path -Path $PuttyDirectory -ChildPath plink.exe
+        [Environment]::SetEnvironmentVariable('GIT_SSH', $PlinkPath, [EnvironmentVariableTarget]::User)
+        $env:GIT_SSH = $PlinkPath
+
+        "Storing GitHub's SSH key"
+        $SshHostKeysPath = 'HKCU:\SOFTWARE\SimonTatham\PuTTY\SshHostKeys'
+        if (-not (Test-Path $SshHostKeysPath)) 
+        {
+        New-Item $SshHostKeysPath -ItemType Directory -Force 
+        }
+        Set-ItemProperty -Path $SshHostKeysPath -Name 'rsa2@22:github.com' -Value '0x23,0xab603b8511a67679bdb540db3bd2034b004ae936d06be3d760f08fcbaadb4eb4edc3b3c791c70aae9a74c95869e4774421c2abea92e554305f38b5fd414b3208e574c337e320936518462c7652c98b31e16e7da6523bd200742a6444d83fcd5e1732d03673c7b7811555487b55f0c4494f3829ece60f94255a95cb9af537d7fc8c7fe49ef318474ef2920992052265b0a06ea66d4a167fd9f3a48a1a4a307ec1eaaa5149a969a6ac5d56a5ef627e517d81fb644f5b745c4f478ecd082a9492f744aad326f76c8c4dc9100bc6ab79461d2657cb6f06dec92e6b64a6562ff0e32084ea06ce0ea9d35a583bfb00bad38c9d19703c549892e5aa78dc95e250514069'
 #>
 
 
