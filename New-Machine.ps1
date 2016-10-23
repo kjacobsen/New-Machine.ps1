@@ -131,7 +131,7 @@ $null = Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\
 & "$env:ProgramW6432\git\bin\git.exe" config --global user.useconfigonly true
 
 'Setting git push behaviour to squelch the 2.0 upgrade message'
-if ((& "$env:ProgramW6432\git\bin\git.exe" config push.default) -eq $null)
+if ($null -eq (& "$env:ProgramW6432\git\bin\git.exe" config push.default))
 {
     'Setting git push behaviour to squelch the 2.0 upgrade message'
     & "$env:ProgramW6432\git\bin\git.exe" config --global push.default simple
