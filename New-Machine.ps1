@@ -205,28 +205,12 @@ $DownloadLink = ($DownloadPage.Links.Where{$_.outerHTML -match 'Click here' -and
 $null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\rsat.msu"
 Start-Process -FilePath "$env:temp\rsat.msu" -ArgumentList '/quiet /norestart' -Wait
 
-
-
 <#
     TODO: Features to add:
     'Block Macros in Word, Excel and Publisher'
-    'Installing ISE Steriods License (if found)'
-    'GitHub SSH key configuration'
-    'Copy hexchat configuration'
 #>
 
 <#
-        if (-not (Test-Path -Path HKCU:\Software\Microsoft\OneDrive))
-        {
-        throw "Couldn't find a compatible install of OneDrive"
-        }
-
-        $OneDriveRoot = (Get-Item -Path HKCU:\Software\Microsoft\OneDrive).GetValue('UserFolder')
-        if (-not (Test-Path $OneDriveRoot))
-        {
-        throw "Couldn't find the OneDrive root"
-        }
-
         $SshKeyPath = Join-Path -Path $OneDriveRoot -ChildPath SSHProfiles\GitHub\GitPrivate.ppk
         if (-not (Test-Path $SshKeyPath))
         {
