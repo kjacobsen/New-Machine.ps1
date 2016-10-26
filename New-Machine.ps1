@@ -21,24 +21,21 @@ $ChocolateySoftwareToInstall = @(
     'adobereader'
     'tunnelier'
     'CrashPlan'
-    #'emet'
+    'emet'
     'fiddler4'
     'git.install'
-    #'glasswire'
     'google-chrome-x64'
     'hexchat'
     'Keepass.install'
     'git-credential-manager-for-windows'
     'visualstudiocode'
     'vscode-powershell'
-    #'visualstudiocode-insiders'
     'openinvscode'
     'nmap'
     'notepadplusplus.install'
     'putty.install'
     'rdcman'
     'slack'
-    #'spotify'
     'WinMerge'
     'wireshark'
     'conemu'
@@ -46,6 +43,7 @@ $ChocolateySoftwareToInstall = @(
     'WinSCP.install'
     'openssh'
     'vmwareworkstation'
+    'glasswire'
 )
 
 Foreach ($Software in $ChocolateySoftwareToInstall)
@@ -94,13 +92,14 @@ Foreach ($Module in $ModulesToInstall)
 Install-Module -Name 'ISESteroids' -Scope CurrentUser
 
 'Forcing up to new version of PowerShellGet'
-Import-Module -Name PowerShellGet -Force -MinimumVersion 1.1.1.0
+Import-Module -Name PowerShellGet -Force -MinimumVersion 1.1.0.0
 
-'Installing Office Pro Plus'
-$null = Install-Module -Name 'OfficeProvider' -Force
-$null = Import-PackageProvider -Name 'OfficeProvider'
-$null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
-$null = Install-Package -Name 'Office' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
+# Not 100% sure this is working
+#'Installing Office Pro Plus'
+#$null = Install-Module -Name 'OfficeProvider' -Force
+#$null = Import-PackageProvider -Name 'OfficeProvider'
+#$null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
+#$null = Install-Package -Name 'Office' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
 
 'Installing .Net 3.5'
 Enable-WindowsOptionalFeature -FeatureName NetFx3 -Online
@@ -110,7 +109,7 @@ $null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\
 $null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name 'AllowDevelopmentWithoutDevLicense' -Value 1
 
 'Installing Bash on Windows'
-#Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux'
+Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux'
 
 'Enable CTL+ALT+DEL at logon'
 $null = New-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'DisableCAD' -PropertyType DWORD -Value 0 -Force
