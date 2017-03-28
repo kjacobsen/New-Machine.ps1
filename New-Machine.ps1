@@ -26,7 +26,7 @@ $ChocolateySoftwareToInstall = @(
     'git.install'
     'google-chrome-x64'
     'hexchat'
-    'Keepass.install'
+    #'Keepass.install'
     'git-credential-manager-for-windows'
     'visualstudiocode'
     'vscode-powershell'
