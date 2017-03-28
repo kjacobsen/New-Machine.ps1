@@ -39,7 +39,7 @@ $ChocolateySoftwareToInstall = @(
     'WinMerge'
     'wireshark'
     'conemu'
-    'VLC'
+    #'VLC'
     'WinSCP.install'
     'openssh'
     'vmwareworkstation'
