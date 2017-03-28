@@ -1,4 +1,4 @@
-ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 
 'Setting up Execution Policy'
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted
