@@ -86,7 +86,7 @@ $ModulesToInstall = @(
 Foreach ($Module in $ModulesToInstall)
 {
     'Installing {0}' -f $Module
-    $null = Install-Module -Name $Module -Force
+    $null = Install-Module -Name $Module -Force -AllowClobber
 }
 
 'Install PowerShell ISE Steroids into current user'
