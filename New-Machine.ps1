@@ -1,4 +1,4 @@
-﻿$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Stop'
 
 'Setting up Execution Policy'
 Set-ExecutionPolicy -ExecutionPolicy Unrestricted
@@ -17,7 +17,7 @@ $ChocolateySoftwareToInstall = @(
     'vcredist2012'
     'vcredist2013'
     'vcredist2015'
-    '7zip.install'
+    #'7zip.install'
     'adobereader'
     'tunnelier'
     'CrashPlan'
@@ -44,6 +44,7 @@ $ChocolateySoftwareToInstall = @(
     'openssh'
     'vmwareworkstation'
     'glasswire'
+    'itunes'
 )
 
 Foreach ($Software in $ChocolateySoftwareToInstall)
