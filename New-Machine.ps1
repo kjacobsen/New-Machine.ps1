@@ -11,47 +11,48 @@ $null = Set-PackageSource -Name Chocolatey -Trusted
 
 'Installing software from Chocolatey'
 $ChocolateySoftwareToInstall = @(
-    'vcredist2005'
-    'vcredist2008'
-    'vcredist2010'
-    'vcredist2012'
-    'vcredist2013'
-    'vcredist2015'
-    '7zip.install'
-    'adobereader'
-    'tunnelier'
-    'CrashPlan'
-    #'emet'
+    #'7zip.install'
+    'brave'
+    'conemu'
     'fiddler4'
+    'firefox'
     'git.install'
-    #'glasswire'
+    'git-credential-manager-for-windows'
     'google-chrome-x64'
     'hexchat'
+    'itunes'
     'Keepass.install'
-    'git-credential-manager-for-windows'
-    'visualstudiocode'
-    'vscode-powershell'
-    #'visualstudiocode-insiders'
-    'openinvscode'
+    'lastpass'
     'nmap'
     'notepadplusplus.install'
+    'openinvscode'
     'putty.install'
     'rdcman'
-    'slack'
-    #'spotify'
+    'snagit'
+    'sql-server-management-studio'
+    'vcredist-all'
+    'visualstudiocode'
+    'visualstudiocode-insiders'
+    'VLC'
+    'vscode-powershell'
     'WinMerge'
     'wireshark'
-    'conemu'
-    'VLC'
-    'WinSCP.install'
-    'openssh'
-    'vmwareworkstation'
 )
 
-Foreach ($Software in $ChocolateySoftwareToInstall)
-{
-    'Installing {0}' -f $Software
-    $null = Install-Package -Name $Software -ProviderName chocolatey
+Foreach ($Software in $ChocolateySoftwareToInstall) {
+    if ($null -eq (Get-Package -Name $Software -ErrorAction SilentlyContinue)) {
+        'Installing Package - {0}' -f $Software
+        $null = Install-Package -Name $Software -ProviderName chocolatey
+    }
+    else {
+        $InstalledVersion = (Get-Package -Name $Software)[0].version
+        $LatestVersion = (Find-Package -Name $Software)[0].version
+
+        if ($InstalledVersion -lt $LatestVersion) {
+            'Updating Package - {0}' -f $Software
+            $null = Install-Package -Name $Software -ProviderName chocolatey
+        }
+    }
 }
 
 'Set PS Gallery to trusted'
@@ -61,46 +62,63 @@ $null = Set-PackageSource -Name PSGallery -Trusted
 $ModulesToInstall = @(
     'AzureRM'
     'Azure'
-    'Posh-Git'
+    'AuditPolicyDSC'
+    'cAzureStorage'
     'cChoco'
     'cWSMan'
+    'GPRegistryPolicy'
     'HybridWorkerToolkit'
+    'PackageManagement'
+    'PackageManagementProviderResource'
     'Pester'
+    'Plaster'
+    'Posh-Docker'
+    'Posh-Git'
     'Posh-SSH'
+    'PowerShellGet'
+    'PSReadline'
     'PSScriptAnalyzer'
+    'SecurityPolicyDSC'
+    'WindowsDefender'
     'xActiveDirectory'
     'xAdcsDeployment'
     'xCertificate'
     'xComputerManagement'
+    'xDFS'
     'xDnsServer'
     'xDSCResourceDesigner'
     'xNetworking'
+    'xPendingReboot'
     'xPSDesiredStateConfiguration'
-    'xStorage'
     'xRemoteDesktopAdmin'
+    'xStorage'
+    'xTimeZone'
     'xWebAdministration'
-    'PSReadline'
-    'PowerShellGet'
-    'PackageManagement'
+    'xWindowsUpdate'
 )
 
-Foreach ($Module in $ModulesToInstall)
-{
-    'Installing {0}' -f $Module
-    $null = Install-Module -Name $Module -Force
+Foreach ($Module in $ModulesToInstall) {
+    'Processing Module - {0}' -f $Module
+    if ($null -eq (Get-Module -Name $Module -ListAvailable)) {
+        'Installing PowerShell Module - {0}' -f $Module
+        $null = Install-Module -Name $Module -Force
+    }
+    else {
+        $InstalledVersion = (Get-Module -Name $Module -ListAvailable)[0].version
+        $LatestVersion = (Find-Module -Name $Module)[0].version
+
+        if ($InstalledVersion -lt $LatestVersion) {
+            if ($null -eq (Get-Package -Name $Module -ErrorAction SilentlyContinue)) {
+                'Force Installing PowerShell Module - {0}' -f $Module
+                $null = Install-Module -Name $Module -Force
+            }
+            else {
+                'Updating PowerShell Module - {0}' -f $Module
+                $null = Update-Module -Name $Module -Force
+            }
+        }
+    }
 }
-
-'Install PowerShell ISE Steroids into current user'
-Install-Module -Name 'ISESteroids' -Scope CurrentUser
-
-'Forcing up to new version of PowerShellGet'
-Import-Module -Name PowerShellGet -Force -MinimumVersion 1.1.1.0
-
-'Installing Office Pro Plus'
-$null = Install-Module -Name 'OfficeProvider' -Force
-$null = Import-PackageProvider -Name 'OfficeProvider'
-$null = Get-PackageProvider -Name 'OfficeProvider' -ForceBootstrap
-$null = Install-Package -Name 'Office' -ProviderName OfficeProvider -Bitness 32 -Channel FirstReleaseCurrent
 
 'Installing .Net 3.5'
 Enable-WindowsOptionalFeature -FeatureName NetFx3 -Online
@@ -131,8 +149,7 @@ $null = Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\
 & "$env:ProgramW6432\git\bin\git.exe" config --global user.useconfigonly true
 
 'Setting git push behaviour to squelch the 2.0 upgrade message'
-if ($null -eq (& "$env:ProgramW6432\git\bin\git.exe" config push.default))
-{
+if ($null -eq (& "$env:ProgramW6432\git\bin\git.exe" config push.default)) {
     'Setting git push behaviour to squelch the 2.0 upgrade message'
     & "$env:ProgramW6432\git\bin\git.exe" config --global push.default simple
 }
@@ -144,45 +161,35 @@ if ($null -eq (& "$env:ProgramW6432\git\bin\git.exe" config push.default))
 & "$env:ProgramW6432\git\bin\git.exe" config --global alias.lg "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
 
 'Enabling Office smileys'
-if (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0') 
-{
-    if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback'))
-    {
+if (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0') {
+    if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback')) {
         $null = New-Item -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback' -ItemType Directory
     }
     $null = Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback' -Name Enabled -Value 1
 }
-else
-{
+else {
     Write-Warning -Message "Couldn't find a compatible install of Office"
 }
 
 'Block Advertising in IE'
 
-if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety'))
-{
+if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety')) {
     $null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety' -ItemType Directory
 }
-if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE'))
-{
+if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE')) {
     $null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -ItemType Directory
 }
-if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\'))
-{
+if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\')) {
     $null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\' -ItemType Directory
 }
 $null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'FilteringMode' -PropertyType DWORD -Value 0 -Force
-if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}'))
-{
+if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}')) {
     $null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}' -ItemType Directory
 }
 $null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Enabled' -PropertyType DWORD -Value 1 -Force
 $null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Name' -PropertyType String -Value 'EasyList' -Force
 $null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Path' -PropertyType String -Value '%AppDataDir%\Local\Microsoft\Internet Explorer\Tracking Protection\{7C998372-3B89-46E6-9546-1945C711CD0C}.tpl' -Force
 $null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Url' -PropertyType String -Value 'http://easylist-msie.adblockplus.org/easylist.tpl' -Force
-
-'Harden Adobe PDF configuration'
-$null = New-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Adobe\Acrobat Reader\DC\FeatureLockDown' -Name 'iProtectedView' -PropertyType DWORD -Value 1 -Force
 
 'Install Microsoft Junk E-Mail Reporting Add-in'
 $MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=18275'
@@ -211,7 +218,39 @@ Start-Process -FilePath "$env:temp\rsat.msu" -ArgumentList '/quiet /norestart' -
 #>
 
 <#
-        $SshKeyPath = Join-Path -Path $OneDriveRoot -ChildPath SSHProfiles\GitHub\GitPrivate.ppk
+git config --global core.editor "code --wait"
+git config --global user.name "Matt Hilton"
+
+if (-not (Test-Path -Path HKCU:\Software\Microsoft\OneDrive))
+{throw "Couldn't find a compatible install of OneDrive"}
+$OneDriveRoot = (Get-Item -Path HKCU:\Software\Microsoft\OneDrive).GetValue('UserFolder')
+if (-not (Test-Path $OneDriveRoot))
+{throw "Couldn't find the OneDrive root"}
+
+$SshKeyPath = Join-Path -Path $OneDriveRoot -ChildPath Configuration\SSHProfiles\GitHub\GitPrivate.ppk
+if (-not (Test-Path $SshKeyPath))
+{throw "Couldn't find SSH key at $SshKeyPath"}
+
+$sshHomePath = Join-Path $ENV:UserProfile '.ssh'
+if (-not (Test-Path $sshHomePath))
+{ mkdir $sshHomePath }
+Copy-Item $SshKeyPath $sshHomePath
+
+'Setting plink.exe as GIT_SSH'
+$PuttyDirectory = 'C:\Program Files (x86)\PuTTY'
+$PlinkPath = Join-Path -Path $PuttyDirectory -ChildPath plink.exe
+[Environment]::SetEnvironmentVariable('GIT_SSH', $PlinkPath, [EnvironmentVariableTarget]::User)
+$env:GIT_SSH = $PlinkPath
+
+"Storing GitHub's SSH key"
+$SshHostKeysPath = 'HKCU:\SOFTWARE\SimonTatham\PuTTY\SshHostKeys'
+if (-not (Test-Path $SshHostKeysPath)) { New-Item $SshHostKeysPath -ItemType Directory -Force }
+Set-ItemProperty -Path $SshHostKeysPath -Name 'rsa2@22:github.com' -Value '0x23,0xab603b8511a67679bdb540db3bd2034b004ae936d06be3d760f08fcbaadb4eb4edc3b3c791c70aae9a74c95869e4774421c2abea92e554305f38b5fd414b3208e574c337e320936518462c7652c98b31e16e7da6523bd200742a6444d83fcd5e1732d03673c7b7811555487b55f0c4494f3829ece60f94255a95cb9af537d7fc8c7fe49ef318474ef2920992052265b0a06ea66d4a167fd9f3a48a1a4a307ec1eaaa5149a969a6ac5d56a5ef627e517d81fb644f5b745c4f478ecd082a9492f744aad326f76c8c4dc9100bc6ab79461d2657cb6f06dec92e6b64a6562ff0e32084ea06ce0ea9d35a583bfb00bad38c9d19703c549892e5aa78dc95e250514069'
+
+
+
+
+        $SshKeyPath = Join-Path -Path $OneDriveRoot -ChildPath Configuration\SSHProfiles\GitHub\GitPrivate.ppk
         if (-not (Test-Path $SshKeyPath))
         {
         throw "Couldn't find SSH key at $SshKeyPath"
@@ -220,7 +259,7 @@ Start-Process -FilePath "$env:temp\rsat.msu" -ArgumentList '/quiet /norestart' -
         $sshHomePath = Join-Path $ENV:UserProfile '.ssh'
         if (-not (Test-Path $sshHomePath))
         {
-        mkdir $sshHomePath 
+        mkdir $sshHomePath
         }
         Copy-Item $SshKeyPath $sshHomePath
 
@@ -232,9 +271,9 @@ Start-Process -FilePath "$env:temp\rsat.msu" -ArgumentList '/quiet /norestart' -
 
         "Storing GitHub's SSH key"
         $SshHostKeysPath = 'HKCU:\SOFTWARE\SimonTatham\PuTTY\SshHostKeys'
-        if (-not (Test-Path $SshHostKeysPath)) 
+        if (-not (Test-Path $SshHostKeysPath))
         {
-        New-Item $SshHostKeysPath -ItemType Directory -Force 
+        New-Item $SshHostKeysPath -ItemType Directory -Force
         }
         Set-ItemProperty -Path $SshHostKeysPath -Name 'rsa2@22:github.com' -Value '0x23,0xab603b8511a67679bdb540db3bd2034b004ae936d06be3d760f08fcbaadb4eb4edc3b3c791c70aae9a74c95869e4774421c2abea92e554305f38b5fd414b3208e574c337e320936518462c7652c98b31e16e7da6523bd200742a6444d83fcd5e1732d03673c7b7811555487b55f0c4494f3829ece60f94255a95cb9af537d7fc8c7fe49ef318474ef2920992052265b0a06ea66d4a167fd9f3a48a1a4a307ec1eaaa5149a969a6ac5d56a5ef627e517d81fb644f5b745c4f478ecd082a9492f744aad326f76c8c4dc9100bc6ab79461d2657cb6f06dec92e6b64a6562ff0e32084ea06ce0ea9d35a583bfb00bad38c9d19703c549892e5aa78dc95e250514069'
 #>
