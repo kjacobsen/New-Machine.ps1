@@ -11,10 +11,11 @@ $null = Set-PackageSource -Name Chocolatey -Trusted
 
 'Installing software from Chocolatey'
 $ChocolateySoftwareToInstall = @(
-    #'7zip.install'
+    'vcredist-all'
     'brave'
     'conemu'
-    'fiddler4'
+    'tunnelier'
+    'CrashPlan'
     'firefox'
     'git.install'
     'git-credential-manager-for-windows'
@@ -23,6 +24,11 @@ $ChocolateySoftwareToInstall = @(
     'itunes'
     'Keepass.install'
     'lastpass'
+    'google-chrome-x64'
+    'hexchat'
+    'visualstudiocode'
+    'vscode-powershell'
+    'openinvscode'
     'nmap'
     'notepadplusplus.install'
     'openinvscode'
@@ -30,13 +36,9 @@ $ChocolateySoftwareToInstall = @(
     'rdcman'
     'snagit'
     'sql-server-management-studio'
-    'vcredist-all'
-    'visualstudiocode'
-    'visualstudiocode-insiders'
-    'VLC'
-    'vscode-powershell'
     'WinMerge'
     'wireshark'
+    'glasswire'
 )
 
 Foreach ($Software in $ChocolateySoftwareToInstall) {
@@ -128,7 +130,7 @@ $null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\
 $null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name 'AllowDevelopmentWithoutDevLicense' -Value 1
 
 'Installing Bash on Windows'
-#Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux'
+Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux'
 
 'Enable CTL+ALT+DEL at logon'
 $null = New-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'DisableCAD' -PropertyType DWORD -Value 0 -Force
