@@ -1,38 +1,39 @@
-﻿$ErrorActionPreference = 'Stop'
+﻿[CmdletBinding()]
+param ()
 
-'Setting up Execution Policy'
-Set-ExecutionPolicy -ExecutionPolicy Unrestricted
+$ErrorActionPreference = 'Stop';
 
-'Adding Chocolatey'
-$null = Get-PackageProvider -Name Chocolatey
+$IsAdmin = (New-Object System.Security.Principal.WindowsPrincipal([System.Security.Principal.WindowsIdentity]::GetCurrent())).IsInRole([System.Security.Principal.WindowsBuiltInRole]::Administrator)
+if (-not $IsAdmin) {
+    throw 'You need to run this script elevated'
+}
 
-'Trusting Chocolatey'
-$null = Set-PackageSource -Name Chocolatey -Trusted
+Write-Progress -Activity 'Setting execution policy'
+Set-ExecutionPolicy RemoteSigned
 
-'Installing software from Chocolatey'
+
+Write-Progress -Activity 'Ensuring Chocolatey is available'
+$null = Get-PackageProvider -Name 'chocolatey'
+
+Write-Progress -Activity "Ensuring Chocolatey is trusted"
+if (-not ((Get-PackageSource -Name 'chocolatey').IsTrusted)) {
+    $null = Set-PackageSource -Name 'chocolatey' -Trusted
+}
+
+
 $ChocolateySoftwareToInstall = @(
     'vcredist-all'
     'brave'
     'conemu'
-    'tunnelier'
-    'CrashPlan'
-    'firefox'
     'git.install'
-    'git-credential-manager-for-windows'
     'google-chrome-x64'
     'hexchat'
     'itunes'
-    'Keepass.install'
     'lastpass'
     'google-chrome-x64'
-    'hexchat'
     'visualstudiocode'
     'vscode-powershell'
     'openinvscode'
-    'nmap'
-    'notepadplusplus.install'
-    'openinvscode'
-    'putty.install'
     'rdcman'
     'snagit'
     'sql-server-management-studio'
@@ -43,7 +44,7 @@ $ChocolateySoftwareToInstall = @(
 
 Foreach ($Software in $ChocolateySoftwareToInstall) {
     if ($null -eq (Get-Package -Name $Software -ErrorAction SilentlyContinue)) {
-        'Installing Package - {0}' -f $Software
+        Write-Progress -Activity ('Installing Package - {0}' -f $Software)
         $null = Install-Package -Name $Software -ProviderName chocolatey
     }
     else {
@@ -51,16 +52,17 @@ Foreach ($Software in $ChocolateySoftwareToInstall) {
         $LatestVersion = (Find-Package -Name $Software)[0].version
 
         if ($InstalledVersion -lt $LatestVersion) {
-            'Updating Package - {0}' -f $Software
+            Write-Progress -Activity ('Updating Package - {0}' -f $Software)
             $null = Install-Package -Name $Software -ProviderName chocolatey
         }
     }
 }
 
-'Set PS Gallery to trusted'
-$null = Set-PackageSource -Name PSGallery -Trusted
+Write-Progress -Activity 'Ensuring PowerShell Gallery is trusted'
+if (-not ((Get-PackageSource -Name 'PSGallery').IsTrusted)) {
+    $null = Set-PackageSource -Name 'PSGallery' -Trusted
+}
 
-'Installing modules for PS gallery'
 $ModulesToInstall = @(
     'AzureRM'
     'Azure'
@@ -76,7 +78,6 @@ $ModulesToInstall = @(
     'Plaster'
     'Posh-Docker'
     'Posh-Git'
-    'Posh-SSH'
     'PowerShellGet'
     'PSReadline'
     'PSScriptAnalyzer'
@@ -100,9 +101,8 @@ $ModulesToInstall = @(
 )
 
 Foreach ($Module in $ModulesToInstall) {
-    'Processing Module - {0}' -f $Module
     if ($null -eq (Get-Module -Name $Module -ListAvailable)) {
-        'Installing PowerShell Module - {0}' -f $Module
+        Write-Progress -Activity ('Installing PowerShell Module - {0}' -f $Module)
         $null = Install-Module -Name $Module -Force
     }
     else {
@@ -111,103 +111,282 @@ Foreach ($Module in $ModulesToInstall) {
 
         if ($InstalledVersion -lt $LatestVersion) {
             if ($null -eq (Get-Package -Name $Module -ErrorAction SilentlyContinue)) {
-                'Force Installing PowerShell Module - {0}' -f $Module
+                Write-Progress -Activity ('Force Installing PowerShell Module - {0}' -f $Module)
                 $null = Install-Module -Name $Module -Force
             }
             else {
-                'Updating PowerShell Module - {0}' -f $Module
+                Write-Progress -Activity ('Updating PowerShell Module - {0}' -f $Module)
                 $null = Update-Module -Name $Module -Force
             }
         }
     }
 }
 
-'Installing .Net 3.5'
-Enable-WindowsOptionalFeature -FeatureName NetFx3 -Online
-
-'Enable Developer Mode'
-$null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name 'AllowAllTrustedApps' -Value 1
-$null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\AppModelUnlock' -Name 'AllowDevelopmentWithoutDevLicense' -Value 1
-
-'Installing Bash on Windows'
-Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux'
-
-'Enable CTL+ALT+DEL at logon'
-$null = New-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'DisableCAD' -PropertyType DWORD -Value 0 -Force
-
-'Setting UAC to FULL'
-$null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'ConsentPromptBehaviorAdmin' -Value 2
-
-'Set explorer to open to "This PC"'
-$null = New-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'LaunchTo' -PropertyType DWORD -Value 1 -Force
-
-'Show file extensions'
-$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'HideFileExt' -PropertyType DWORD -Value 0 -Force
-
-'Set PowerShell for Win+X'
-$null = Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\' -Name 'DontUsePowerShellOnWinX' -Value 0
-
-'Make Git ask who I am before I commit'
-& "$env:ProgramW6432\git\bin\git.exe" config --global user.useconfigonly true
-
-'Setting git push behaviour to squelch the 2.0 upgrade message'
-if ($null -eq (& "$env:ProgramW6432\git\bin\git.exe" config push.default)) {
-    'Setting git push behaviour to squelch the 2.0 upgrade message'
-    & "$env:ProgramW6432\git\bin\git.exe" config --global push.default simple
-}
-
-'Setting git aliases'
-& "$env:ProgramW6432\git\bin\git.exe" config --global alias.st 'status'
-& "$env:ProgramW6432\git\bin\git.exe" config --global alias.co 'checkout'
-& "$env:ProgramW6432\git\bin\git.exe" config --global alias.df 'diff'
-& "$env:ProgramW6432\git\bin\git.exe" config --global alias.lg "log --graph --pretty=format:'%Cred%h%Creset -%C(yellow)%d%Creset %s %Cgreen(%cr)%Creset' --abbrev-commit --date=relative"
-
-'Enabling Office smileys'
-if (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0') {
-    if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback')) {
-        $null = New-Item -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback' -ItemType Directory
+Write-Progress -Activity 'Enabling Office smileys'
+if (Test-Path 'HKCU:\Software\Microsoft\Office\16.0') {
+    if (-not (Test-Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback')) {
+        $null = New-Item 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback' -ItemType Directory
     }
-    $null = Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback' -Name Enabled -Value 1
+
+    if ((Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback').Enabled -ne 1) {
+        $null = Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback' -Name 'Enabled' -Value 1
+    }
 }
 else {
-    Write-Warning -Message "Couldn't find a compatible install of Office"
+    Write-Warning "Couldn't find a compatible install of Office"
 }
 
-'Block Advertising in IE'
+Write-Progress -Activity 'Disabling Outlook notifications'
+if (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences') {
+    if ((Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences').ChangePointer -ne 0) {
+        $null = Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences' -Name 'ChangePointer' -Value 0
+    }
 
-if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety')) {
-    $null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety' -ItemType Directory
-}
-if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE')) {
-    $null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -ItemType Directory
-}
-if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\')) {
-    $null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\' -ItemType Directory
-}
-$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'FilteringMode' -PropertyType DWORD -Value 0 -Force
-if (-not (Test-Path -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}')) {
-    $null = New-Item -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE\Lists\{7C998372-3B89-46E6-9546-1945C711CD0C}' -ItemType Directory
-}
-$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Enabled' -PropertyType DWORD -Value 1 -Force
-$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Name' -PropertyType String -Value 'EasyList' -Force
-$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Path' -PropertyType String -Value '%AppDataDir%\Local\Microsoft\Internet Explorer\Tracking Protection\{7C998372-3B89-46E6-9546-1945C711CD0C}.tpl' -Force
-$null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Internet Explorer\Safety\PrivacIE' -Name 'Url' -PropertyType String -Value 'http://easylist-msie.adblockplus.org/easylist.tpl' -Force
+    if ((Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences').NewmailDesktopAlerts -ne 0) {
+        $null = Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences' -Name 'NewmailDesktopAlerts' -Value 0
+    }
 
-'Install Microsoft Junk E-Mail Reporting Add-in'
+    if ((Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences').PlaySound -ne 0) {
+        $null = Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences' -Name 'PlaySound' -Value 0
+    }
+
+    if ((Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences').ShowEnvelope -ne 0) {
+        $null = Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences' -Name 'ShowEnvelope' -Value 0
+    }
+}
+else {
+    Write-Warning "Couldn't find a compatible install of Office"
+}
+
+Write-Progress 'Hiding desktop icons'
+if ((Get-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\').HideIcons -ne 1) {
+    $null = Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\' -Name 'HideIcons' -Value 1
+    $null = Get-Process 'explorer' | Stop-Process
+}
+
+Write-Progress "Enabling PowerShell on Win+X"
+if ((Get-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\').DontUsePowerShellOnWinX -ne 0) {
+    $null = Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\' -Name 'DontUsePowerShellOnWinX' -Value 0
+    $null = Get-Process 'explorer' | Stop-Process
+}
+
+Write-Progress -Activity 'Enable CTL+ALT+DEL at logon'
+if ((Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DisableCAD -ne 0) {
+    $null = New-ItemPropertyValue -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'DisableCAD' -PropertyType DWORD -Value 0
+}
+
+Write-Progress -Activity 'Setting UAC to FULL'
+if ((Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System').ConsentPromptBehaviorAdmin -ne 2) {
+    $null = Set-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Policies\System' -Name 'ConsentPromptBehaviorAdmin' -Value 2
+}
+
+Write-Progress -Activity 'Set explorer to open to "This PC"'
+if ((Get-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced').LaunchTo -ne 1) {
+    $null = New-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'LaunchTo' -PropertyType DWORD -Value 1
+    $null = Get-Process explorer | Stop-Process
+}
+
+Write-Progress -Activity 'Show file extensions'
+if ((Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced').HideFileExt -ne 0) {
+    $null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'HideFileExt' -PropertyType DWORD -Value 0
+    $null = Get-Process explorer | Stop-Process
+}
+
+Write-Progress -Activity 'Forcing .Net 4 to use TLS 1.2 by default'
+if ((Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\.NETFramework\v4.0.30319').SchUseStrongCrypto -ne 1) {
+    $null = New-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\.NETFramework\v4.0.30319' -Name 'SchUseStrongCrypto' -PropertyType DWORD -Value 1
+}
+if ((Get-ItemProperty -Path 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\.NETFramework\v4.0.30319').SchUseStrongCrypto -ne 1) {
+    $null = New-ItemProperty -Path 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\.NETFramework\v4.0.30319' -Name 'SchUseStrongCrypto' -PropertyType DWORD -Value 1
+}
+
+Write-Progress -Activity 'Hardening TLS (Server) Configuration'
+# Disable insecure Ciphers - We use some weird registry calls here due to the / in the cipher names
+$InsecureCiphers = 'DES 56/56', 'NULL', 'RC2 128/128', 'RC2 40/128', 'RC2 56/128', 'RC4 40/128', 'RC4 56/128', 'RC4 64/128', 'RC4 128/128'
+foreach ($Cipher in $InsecureCiphers)
+{
+    if (-not (Test-Path -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\$Cipher")) {
+        $CipherKey = (Get-Item -Path 'HKLM:\').OpenSubKey('SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers', $true).CreateSubKey($Cipher)
+        $CipherKey.close()
+    }
+
+    if ((Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\$Cipher").Enabled -ne 0) {
+        $CipherKey = (Get-Item -Path 'HKLM:\').OpenSubKey("SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\$Cipher", $true)
+        $CipherKey.SetValue('Enabled', 0, 'DWord')
+        $CipherKey.close()
+    }
+}
+
+# Enable secure Ciphers
+$SecureCiphers = 'AES 128/128', 'AES 256/256', 'Triple DES 168/168'
+foreach ($Cipher in $SecureCiphers)
+{
+    if (-not (Test-Path -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\$Cipher")) {
+        $CipherKey = (Get-Item -Path 'HKLM:\').OpenSubKey('SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers', $true).CreateSubKey($Cipher)
+        $CipherKey.close()
+    }
+
+    if ((Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\$Cipher").Enabled -ne 0) {
+        $CipherKey = (Get-Item -Path 'HKLM:\').OpenSubKey("SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\$Cipher", $true)
+        $CipherKey.SetValue('Enabled', 0, 'DWord')
+        $CipherKey.close()
+    }
+}
+
+# Disable MD5
+if (-not (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\MD5')) {
+    $null = New-Item 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\MD5' -ItemType Directory
+}
+if ((Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\MD5').Enabled -ne 0) {
+    $null = New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\MD5' -Name 'Enabled' -Value 0
+}
+
+# Enable SHA
+if (-not (Test-Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\SHA')) {
+    $null = New-Item 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\SHA' -ItemType Directory
+}
+if ((Get-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\SHA').Enabled -ne 1) {
+    $null = New-ItemProperty -Path 'HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Hashes\SHA' -Name 'Enabled' -Value 1
+}
+
+# Enable Diffie-Hellman / PKCS
+$KeyExchangeAlgorithms = 'Diffie-Hellman', 'PKCS'
+foreach ($KeyExchangeAlgorithm in $KeyExchangeAlgorithms)
+{
+    if (-not (Test-Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\KeyExchangeAlgorithms\$KeyExchangeAlgorithm")) {
+        $null = New-Item "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\KeyExchangeAlgorithms\$KeyExchangeAlgorithm" -ItemType Directory
+    }
+    if ((Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\KeyExchangeAlgorithms\$KeyExchangeAlgorithm").Enabled -ne 1) {
+        $null = New-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\KeyExchangeAlgorithms\$KeyExchangeAlgorithm" -Name 'Enabled' -Value 1
+    }
+}
+
+# Update Cipher Suite Order
+$cipherSuitesOrder = @(
+    'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P521',
+    'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P384',
+    'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384_P256',
+    'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA_P521',
+    'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA_P384',
+    'TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA_P256',
+    'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256_P521',
+    'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA_P521',
+    'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256_P384',
+    'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256_P256',
+    'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA_P384',
+    'TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA_P256',
+    'TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384_P521',
+    'TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384_P384',
+    'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256_P521',
+    'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256_P384',
+    'TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256_P256',
+    'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384_P521',
+    'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384_P384',
+    'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA_P521',
+    'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA_P384',
+    'TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA_P256',
+    'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256_P521',
+    'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256_P384',
+    'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256_P256',
+    'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA_P521',
+    'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA_P384',
+    'TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA_P256',
+    'TLS_DHE_DSS_WITH_AES_256_CBC_SHA256',
+    'TLS_DHE_DSS_WITH_AES_256_CBC_SHA',
+    'TLS_DHE_DSS_WITH_AES_128_CBC_SHA256',
+    'TLS_DHE_DSS_WITH_AES_128_CBC_SHA',
+    'TLS_DHE_DSS_WITH_3DES_EDE_CBC_SHA'
+)
+$cipherSuitesAsString = [string]::join(',', $cipherSuitesOrder)
+
+if (-not (Get-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Cryptography\Configuration\SSL\00010002').Functions -eq $cipherSuitesAsString) {
+    $null = New-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Cryptography\Configuration\SSL\00010002' -Name 'Functions' -Value $cipherSuitesAsString -PropertyType String
+}
+
+
+# Disable PCT 1.0 / SSL 3.0 / SSL 2.0 / TLS 1.0 / TLS 1.1
+$sslVersions = 'PCT 1.0', 'SSL 3.0', 'SSL 2.0', 'TLS 1.0', 'TLS 1.1'
+foreach ($sslVersion in $sslVersions)
+{
+    if (-not (Test-Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion")) {
+        $null = New-Item "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion" -ItemType Directory
+    }
+
+    if (-not (Test-Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server")) {
+        $null = New-Item "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server" -ItemType Directory
+    }
+
+    if ((Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server").Enabled -ne 0) {
+        $null = New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server" -Name 'Enabled' -Value 0
+    }
+
+    if ((Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server").DisabledByDefault -ne 1) {
+        $null = New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server" -Name 'DisabledByDefault' -Value 1
+    }
+}
+
+# Add TLS 1.2
+$tlsVersion = 'TLS 1.2'
+foreach ($x in $tlsVersion)
+{
+    if (-not (Test-Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion")) {
+        $null = New-Item "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion" -ItemType Directory
+    }
+
+    if (-not (Test-Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server")) {
+        $null = New-Item "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server" -ItemType Directory
+    }
+
+    if ((Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server").Enabled -ne 1) {
+        $null = New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server" -Name 'Enabled' -Value 1
+    }
+
+    if ((Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server").DisabledByDefault -ne 0) {
+        $null = New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Server" -Name 'DisabledByDefault' -Value 0
+    }
+
+    if (-not (Test-Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Client")) {
+        $null = New-Item "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Client" -ItemType Directory
+    }
+
+    if ((Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Client").Enabled -ne 1) {
+        $null = New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Client" -Name 'Enabled' -Value 1
+    }
+
+    if ((Get-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Client").DisabledByDefault -ne 0) {
+        $null = New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Client" -Name 'DisabledByDefault' -Value 0
+    }
+}
+
+Write-Progress -Activity 'Installing .Net 3.5'
+Enable-WindowsOptionalFeature -Online -FeatureName NetFx3
+
+Write-Progress -Activity 'Installing Subsystem for Linux'
+Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux'
+
+Write-Progress -Activity 'Removing SMB1'
+Disable-WindowsOptionalFeature -Online -FeatureName 'FS-SMB1'
+
+Write-Progress -Activity 'Install Microsoft Junk E-Mail Reporting Add-in'
 $MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=18275'
 $DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
 $DownloadLink = ($DownloadPage.Links.Where{$_.outerHTML -match 'Click here' -and $_.href -match 'Junk Reporting Add-in for Office 2007' -and $_.href -match '32-bit'}).href[0]
 $null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\junkreporter-installer.msi"
 Start-Process -FilePath "$env:temp\junkreporter-installer.msi" -ArgumentList '/quiet /qn /norestart' -Wait
 
-'Date and time formatting'
-$null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name sShortDate -Value yyyy-MM-dd
-$null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name sShortTime -Value HH:mm
+Write-Progress -Activity 'Setting Date and time formatting'
+if ((Get-ItemProperty -Path 'HKCU:\Control Panel\International').sShortDate -ne 'yyyy-MM-dd') {
+    $null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name 'sShortDate' -Value 'yyyy-MM-dd'
+}
 
-'Update PowerShell Help'
+if ((Get-ItemProperty -Path 'HKCU:\Control Panel\International').sShortTime -ne 'HH:mm'){
+    $null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name 'sShortTime' -Value 'HH:mm'
+}
+
+Write-Progress -Activity 'Updating PowerShell Help'
 Update-Help -ErrorAction SilentlyContinue
 
-'Install RSAT for Windows 10/Server 2016'
+Write-Progress -Activity 'Install RSAT for Windows 10/Server 2016'
 $MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=45520'
 $DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
 $DownloadLink = ($DownloadPage.Links.Where{$_.outerHTML -match 'Click here' -and $_.href -match 'x64.msu'}).href[0]
