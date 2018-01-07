@@ -24,6 +24,7 @@ if (-not ((Get-PackageSource -Name 'chocolatey').IsTrusted)) {
 
 
 $ChocolateySoftwareToInstall = @(
+    'putty.install'
     'vcredist-all'
     'brave'
     'conemu'
