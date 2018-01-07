@@ -12,8 +12,10 @@ Write-Progress -Activity 'Setting execution policy'
 Set-ExecutionPolicy RemoteSigned
 
 
-Write-Progress -Activity 'Ensuring Chocolatey is available'
-$null = Get-PackageProvider -Name 'chocolatey'
+Write-Progress -Activity 'Ensuring ChocolateyGet is available'
+$null = Find-PackageProvider ChocolateyGet
+$null = Install-PackageProvider ChocolateyGet
+$null = Import-PackageProvider ChocolateyGet
 
 Write-Progress -Activity "Ensuring Chocolatey is trusted"
 if (-not ((Get-PackageSource -Name 'chocolatey').IsTrusted)) {
@@ -37,9 +39,9 @@ $ChocolateySoftwareToInstall = @(
     'rdcman'
     'snagit'
     'sql-server-management-studio'
-    'WinMerge'
     'wireshark'
     'glasswire'
+    'gpg4win'
 )
 
 Foreach ($Software in $ChocolateySoftwareToInstall) {
@@ -48,8 +50,8 @@ Foreach ($Software in $ChocolateySoftwareToInstall) {
         $null = Install-Package -Name $Software -ProviderName chocolatey
     }
     else {
-        $InstalledVersion = (Get-Package -Name $Software)[0].version
-        $LatestVersion = (Find-Package -Name $Software)[0].version
+        $InstalledVersion = (Get-Package -Name $Software).version
+        $LatestVersion = (Find-Package -Name $Software).version
 
         if ($InstalledVersion -lt $LatestVersion) {
             Write-Progress -Activity ('Updating Package - {0}' -f $Software)
@@ -131,8 +133,7 @@ if (Test-Path 'HKCU:\Software\Microsoft\Office\16.0') {
     if ((Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback').Enabled -ne 1) {
         $null = Set-ItemProperty -Path 'HKCU:\Software\Microsoft\Office\16.0\Common\Feedback' -Name 'Enabled' -Value 1
     }
-}
-else {
+} else {
     Write-Warning "Couldn't find a compatible install of Office"
 }
 
@@ -155,7 +156,7 @@ if (Test-Path -Path 'HKCU:\Software\Microsoft\Office\16.0\Outlook\Preferences') 
     }
 }
 else {
-    Write-Warning "Couldn't find a compatible install of Office"
+    Write-Warning "Couldn't find a compatible install of Outlook, or Outlook has never been started"
 }
 
 Write-Progress 'Hiding desktop icons'
@@ -172,7 +173,7 @@ if ((Get-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Exp
 
 Write-Progress -Activity 'Enable CTL+ALT+DEL at logon'
 if ((Get-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DisableCAD -ne 0) {
-    $null = New-ItemPropertyValue -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'DisableCAD' -PropertyType DWORD -Value 0
+    $null = Set-ItemProperty -Path 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon' -Name 'DisableCAD' -Value 0
 }
 
 Write-Progress -Activity 'Setting UAC to FULL'
@@ -200,6 +201,7 @@ if ((Get-ItemProperty -Path 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\.NETFramework\
     $null = New-ItemProperty -Path 'HKLM:\SOFTWARE\Wow6432Node\Microsoft\.NETFramework\v4.0.30319' -Name 'SchUseStrongCrypto' -PropertyType DWORD -Value 1
 }
 
+<#
 Write-Progress -Activity 'Hardening TLS (Server) Configuration'
 # Disable insecure Ciphers - We use some weird registry calls here due to the / in the cipher names
 $InsecureCiphers = 'DES 56/56', 'NULL', 'RC2 128/128', 'RC2 40/128', 'RC2 56/128', 'RC4 40/128', 'RC4 56/128', 'RC4 64/128', 'RC4 128/128'
@@ -226,9 +228,9 @@ foreach ($Cipher in $SecureCiphers)
         $CipherKey.close()
     }
 
-    if ((Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\$Cipher").Enabled -ne 0) {
+    if ((Get-ItemProperty -Path "HKLM:\SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\$Cipher").Enabled -ne 1) {
         $CipherKey = (Get-Item -Path 'HKLM:\').OpenSubKey("SYSTEM\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Ciphers\$Cipher", $true)
-        $CipherKey.SetValue('Enabled', 0, 'DWord')
+        $CipherKey.SetValue('Enabled', 1, 'DWord')
         $CipherKey.close()
     }
 }
@@ -357,25 +359,37 @@ foreach ($x in $tlsVersion)
         $null = New-ItemProperty -Path "HKLM:\System\CurrentControlSet\Control\SecurityProviders\SCHANNEL\Protocols\$sslVersion\Client" -Name 'DisabledByDefault' -Value 0
     }
 }
+#>
 
 Write-Progress -Activity 'Installing .Net 3.5'
-Enable-WindowsOptionalFeature -Online -FeatureName NetFx3
+$null = Enable-WindowsOptionalFeature -Online -FeatureName NetFx3 -NoRestart
 
 Write-Progress -Activity 'Installing Subsystem for Linux'
-Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux'
+$null = Enable-WindowsOptionalFeature -Online -FeatureName 'Microsoft-Windows-Subsystem-Linux' -NoRestart
 
 Write-Progress -Activity 'Removing SMB1'
-Disable-WindowsOptionalFeature -Online -FeatureName 'FS-SMB1'
+$null = Disable-WindowsOptionalFeature -Online -FeatureName 'SMB1Protocol' -NoRestart
 
 Write-Progress -Activity 'Install Microsoft Junk E-Mail Reporting Add-in'
-$MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=18275'
-$DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
-$DownloadLink = ($DownloadPage.Links.Where{$_.outerHTML -match 'Click here' -and $_.href -match 'Junk Reporting Add-in for Office 2007' -and $_.href -match '32-bit'}).href[0]
-$null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\junkreporter-installer.msi"
-Start-Process -FilePath "$env:temp\junkreporter-installer.msi" -ArgumentList '/quiet /qn /norestart' -Wait
+if ($null -eq (Get-Package -Name 'Microsoft Junk E-mail Reporting Add-in' -ErrorAction SilentlyContinue)) {
+    $MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=18275'
+    $DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
+    $DownloadLink = ($DownloadPage.Links.Where{$_.outerHTML -match 'Click here' -and $_.href -match 'Junk Reporting Add-in for Office 2007' -and $_.href -match '32-bit'}).href[0]
+    $null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\junkreporter-installer.msi"
+    Start-Process -FilePath "$env:temp\junkreporter-installer.msi" -ArgumentList '/quiet /qn /norestart' -Wait
+}
+
+Write-Progress -Activity 'Install RSAT for Windows 10/Server 2016'
+if ($null -eq (Get-Package -Name 'Update for Windows (KB2693643)' -ErrorAction SilentlyContinue)) {
+    $MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=45520'
+    $DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
+    $DownloadLink = ($DownloadPage.Links.Where{$_.outerHTML -match 'Click here' -and $_.href -match 'x64.msu'}).href[0]
+    $null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\rsat.msu"
+    Start-Process -FilePath "$env:temp\rsat.msu" -ArgumentList '/quiet /norestart' -Wait
+}
 
 Write-Progress -Activity 'Setting Date and time formatting'
-if ((Get-ItemProperty -Path 'HKCU:\Control Panel\International').sShortDate -ne 'yyyy-MM-dd') {
+if ((Get-ItemProperty -Path 'HKCU:\Control Panel\International').sShortDate -ne 'yyy y-MM-dd') {
     $null = Set-ItemProperty -Path 'HKCU:\Control Panel\International' -Name 'sShortDate' -Value 'yyyy-MM-dd'
 }
 
@@ -386,21 +400,12 @@ if ((Get-ItemProperty -Path 'HKCU:\Control Panel\International').sShortTime -ne 
 Write-Progress -Activity 'Updating PowerShell Help'
 Update-Help -ErrorAction SilentlyContinue
 
-Write-Progress -Activity 'Install RSAT for Windows 10/Server 2016'
-$MicrosoftDownloadsURL = 'https://www.microsoft.com/en-us/download/confirmation.aspx?id=45520'
-$DownloadPage = Invoke-WebRequest -UseBasicParsing -Uri $MicrosoftDownloadsURL
-$DownloadLink = ($DownloadPage.Links.Where{$_.outerHTML -match 'Click here' -and $_.href -match 'x64.msu'}).href[0]
-$null = Invoke-WebRequest -UseBasicParsing -Uri $DownloadLink -OutFile "$env:temp\rsat.msu"
-Start-Process -FilePath "$env:temp\rsat.msu" -ArgumentList '/quiet /norestart' -Wait
-
 <#
     TODO: Features to add:
     'Block Macros in Word, Excel and Publisher'
 #>
 
 <#
-git config --global core.editor "code --wait"
-git config --global user.name "Matt Hilton"
 
 if (-not (Test-Path -Path HKCU:\Software\Microsoft\OneDrive))
 {throw "Couldn't find a compatible install of OneDrive"}
