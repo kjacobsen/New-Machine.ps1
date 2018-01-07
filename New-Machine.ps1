@@ -115,7 +115,12 @@ Foreach ($Module in $ModulesToInstall) {
         if ($InstalledVersion -lt $LatestVersion) {
             if ($null -eq (Get-Package -Name $Module -ErrorAction SilentlyContinue)) {
                 Write-Progress -Activity ('Force Installing PowerShell Module - {0}' -f $Module)
-                $null = Install-Module -Name $Module -Force
+                if ($Module -eq 'Pester') {
+                    $null = Install-Module -Name $Module -Force -SkipPublisherCheck
+                }
+                else {
+                    $null = Install-Module -Name $Module -Force
+                }
             }
             else {
                 Write-Progress -Activity ('Updating PowerShell Module - {0}' -f $Module)
@@ -163,13 +168,11 @@ else {
 Write-Progress 'Hiding desktop icons'
 if ((Get-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\').HideIcons -ne 1) {
     $null = Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\' -Name 'HideIcons' -Value 1
-    $null = Get-Process 'explorer' | Stop-Process
 }
 
 Write-Progress "Enabling PowerShell on Win+X"
 if ((Get-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\').DontUsePowerShellOnWinX -ne 0) {
     $null = Set-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced\' -Name 'DontUsePowerShellOnWinX' -Value 0
-    $null = Get-Process 'explorer' | Stop-Process
 }
 
 Write-Progress -Activity 'Enable CTL+ALT+DEL at logon'
@@ -185,13 +188,11 @@ if ((Get-ItemProperty -Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Pol
 Write-Progress -Activity 'Set explorer to open to "This PC"'
 if ((Get-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced').LaunchTo -ne 1) {
     $null = New-ItemProperty -Path 'HKCU:\SOFTWARE\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'LaunchTo' -PropertyType DWORD -Value 1
-    $null = Get-Process explorer | Stop-Process
 }
 
 Write-Progress -Activity 'Show file extensions'
 if ((Get-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced').HideFileExt -ne 0) {
     $null = New-ItemProperty -Path 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\Advanced' -Name 'HideFileExt' -PropertyType DWORD -Value 0
-    $null = Get-Process explorer | Stop-Process
 }
 
 Write-Progress -Activity 'Forcing .Net 4 to use TLS 1.2 by default'
@@ -401,69 +402,33 @@ if ((Get-ItemProperty -Path 'HKCU:\Control Panel\International').sShortTime -ne 
 Write-Progress -Activity 'Updating PowerShell Help'
 Update-Help -ErrorAction SilentlyContinue
 
-<#
-    TODO: Features to add:
-    'Block Macros in Word, Excel and Publisher'
-#>
-
-<#
-
+Write-Progress -Activity 'Creating Symbolic Link To GitHub Private Key'
 if (-not (Test-Path -Path HKCU:\Software\Microsoft\OneDrive))
 {throw "Couldn't find a compatible install of OneDrive"}
 $OneDriveRoot = (Get-Item -Path HKCU:\Software\Microsoft\OneDrive).GetValue('UserFolder')
 if (-not (Test-Path $OneDriveRoot))
 {throw "Couldn't find the OneDrive root"}
 
-$SshKeyPath = Join-Path -Path $OneDriveRoot -ChildPath Configuration\SSHProfiles\GitHub\GitPrivate.ppk
+$SshKeyPath = Join-Path -Path $OneDriveRoot -ChildPath 'Configuration\SSHProfiles\GitHub-2\GitHub.ppk'
 if (-not (Test-Path $SshKeyPath))
 {throw "Couldn't find SSH key at $SshKeyPath"}
 
-$sshHomePath = Join-Path $ENV:UserProfile '.ssh'
-if (-not (Test-Path $sshHomePath))
-{ mkdir $sshHomePath }
-Copy-Item $SshKeyPath $sshHomePath
+$sshHomePath = Join-Path $HOME '.ssh'
+if (-not (Test-Path $sshHomePath)) { 
+    mkdir $sshHomePath 
+}
 
-'Setting plink.exe as GIT_SSH'
+New-Item -Path (Join-Path -Path $sshHomePath -ChildPath 'GitHub.ppk') -Value $SshKeyPath -ItemType SymbolicLink
+
+Write-Progress -Activity 'Setting plink.exe as GIT_SSH'
 $PuttyDirectory = 'C:\Program Files (x86)\PuTTY'
 $PlinkPath = Join-Path -Path $PuttyDirectory -ChildPath plink.exe
 [Environment]::SetEnvironmentVariable('GIT_SSH', $PlinkPath, [EnvironmentVariableTarget]::User)
 $env:GIT_SSH = $PlinkPath
 
-"Storing GitHub's SSH key"
+Write-Progress -Activity "Storing GitHub's SSH key"
 $SshHostKeysPath = 'HKCU:\SOFTWARE\SimonTatham\PuTTY\SshHostKeys'
 if (-not (Test-Path $SshHostKeysPath)) { New-Item $SshHostKeysPath -ItemType Directory -Force }
 Set-ItemProperty -Path $SshHostKeysPath -Name 'rsa2@22:github.com' -Value '0x23,0xab603b8511a67679bdb540db3bd2034b004ae936d06be3d760f08fcbaadb4eb4edc3b3c791c70aae9a74c95869e4774421c2abea92e554305f38b5fd414b3208e574c337e320936518462c7652c98b31e16e7da6523bd200742a6444d83fcd5e1732d03673c7b7811555487b55f0c4494f3829ece60f94255a95cb9af537d7fc8c7fe49ef318474ef2920992052265b0a06ea66d4a167fd9f3a48a1a4a307ec1eaaa5149a969a6ac5d56a5ef627e517d81fb644f5b745c4f478ecd082a9492f744aad326f76c8c4dc9100bc6ab79461d2657cb6f06dec92e6b64a6562ff0e32084ea06ce0ea9d35a583bfb00bad38c9d19703c549892e5aa78dc95e250514069'
-
-
-
-
-        $SshKeyPath = Join-Path -Path $OneDriveRoot -ChildPath Configuration\SSHProfiles\GitHub\GitPrivate.ppk
-        if (-not (Test-Path $SshKeyPath))
-        {
-        throw "Couldn't find SSH key at $SshKeyPath"
-        }
-
-        $sshHomePath = Join-Path $ENV:UserProfile '.ssh'
-        if (-not (Test-Path $sshHomePath))
-        {
-        mkdir $sshHomePath
-        }
-        Copy-Item $SshKeyPath $sshHomePath
-
-        'Setting plink.exe as GIT_SSH'
-        $PuttyDirectory = 'C:\Program Files (x86)\PuTTY'
-        $PlinkPath = Join-Path -Path $PuttyDirectory -ChildPath plink.exe
-        [Environment]::SetEnvironmentVariable('GIT_SSH', $PlinkPath, [EnvironmentVariableTarget]::User)
-        $env:GIT_SSH = $PlinkPath
-
-        "Storing GitHub's SSH key"
-        $SshHostKeysPath = 'HKCU:\SOFTWARE\SimonTatham\PuTTY\SshHostKeys'
-        if (-not (Test-Path $SshHostKeysPath))
-        {
-        New-Item $SshHostKeysPath -ItemType Directory -Force
-        }
-        Set-ItemProperty -Path $SshHostKeysPath -Name 'rsa2@22:github.com' -Value '0x23,0xab603b8511a67679bdb540db3bd2034b004ae936d06be3d760f08fcbaadb4eb4edc3b3c791c70aae9a74c95869e4774421c2abea92e554305f38b5fd414b3208e574c337e320936518462c7652c98b31e16e7da6523bd200742a6444d83fcd5e1732d03673c7b7811555487b55f0c4494f3829ece60f94255a95cb9af537d7fc8c7fe49ef318474ef2920992052265b0a06ea66d4a167fd9f3a48a1a4a307ec1eaaa5149a969a6ac5d56a5ef627e517d81fb644f5b745c4f478ecd082a9492f744aad326f76c8c4dc9100bc6ab79461d2657cb6f06dec92e6b64a6562ff0e32084ea06ce0ea9d35a583bfb00bad38c9d19703c549892e5aa78dc95e250514069'
-#>
-
 
 'REBOOT!'
